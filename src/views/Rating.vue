@@ -1,25 +1,31 @@
 <template>
-  <div class="rating">
+  <scroll class="rating">
     <div class="rating-box">
       <!-- 综合评分 -->
       <div class="score">
-        <h2>3.9</h2>
+        <h2>{{seller.score}}</h2>
         <span>综合评分</span>
-        <p>高于周边商家69.3%</p>
+        <p>高于周边商家{{seller.rankRate}}%</p>
       </div>
       <!-- 评分信息 -->
-      <div class="rating-info">
-        <div>
-          <span>服务态度</span>
-          <Rate disabled />
-        </div>
-        <div>
-          <span>服务态度</span>
-          <Rate disabled />
-        </div>
-        <div>
-          <span>服务态度</span>
-          <Rate disabled />
+      <div class="rating-info-box">
+        <div class="rating-info">
+          <p>
+            <span>服务态度</span>
+            <Rate disabled show-text allow-half v-model="seller.serviceScore">
+              <span style="color: #f5a623">{{ seller.serviceScore }}</span>
+            </Rate>
+          </p>
+          <p>
+            <span>口味评分</span>
+            <Rate disabled show-text allow-half v-model="seller.foodScore">
+              <span style="color: #f5a623">{{ seller.foodScore }}</span>
+            </Rate>
+          </p>
+          <p>
+            <span>送达时间</span>
+            <span>{{seller.deliveryTime}}分钟</span>
+          </p>
         </div>
       </div>
     </div>
@@ -29,27 +35,27 @@
       <!-- 选项区域 -->
       <div class="tab">
         <div class="btn">
-          <div style="background:#00a1dc;color:#fff">
+          <div @click="RateTypeChange(2)" :class='selectType===2?"btnActive":""' style="background:#00a1dc;color:#fff">
             全部
-            <span>57</span>
+            <span>{{rateNum.positive+rateNum.negative}}</span>
           </div>
-          <div style="background:#cceef7;color:#56585f">
+          <div @click="RateTypeChange(0)" :class='selectType===0?"btnActive":""' style="background:#cceef7;color:#56585f">
             满意
-            <span>57</span>
+            <span>{{rateNum.positive}}</span>
           </div>
-          <div style="background:#e9ecec;color:#56585f">
+          <div @click="RateTypeChange(1)"  :class='selectType===1?"btnActive":""' style="background:#e9ecec;color:#56585f">
             不满意
-            <span>57</span>
+            <span>{{rateNum.negative}}</span>
           </div>
         </div>
-        <Checkbox v-model="single">只看有内容的评价</Checkbox>
+        <Checkbox v-model="onlyShowText">只看有内容的评价</Checkbox>
       </div>
       <!-- 评价内容 -->
       <div class="comment-content">
-        <div class="comment-item" v-for="(item,index) in ratings" :key="index">
+        <div class="comment-item" v-for="(item,index) in rateType" :key="index">
           <!-- 头像 -->
           <div class="left-bar">
-            <Avatar icon="ios-person" />
+            <Avatar icon="ios-person" :src="item.avatar" />
           </div>
 
           <div class="right-bar">
@@ -61,57 +67,101 @@
               </div>
               <!-- 送达时间及评价 -->
               <div class="rate">
-                <Rate disabled />
-                <span>{{item.deliveryTime || "未知"}}分钟送达</span>
+                <Rate disabled allow-half v-model="item.score"/>
+                <span v-show="item.deliveryTime">{{item.deliveryTime}}分钟送达</span>
               </div>
             </div>
             <!-- 评价内容 -->
-              <p style="margin:10px 0">{{item.text || "该用户未评价"}}</p>
+            <p style="margin:10px 0">{{item.text || "该用户未评价"}}</p>
             <!-- tags -->
-            <div class="tags" >
-              <Icon type="md-thumbs-up" v-if="item.recommend.length !=0"/>
+            <div class="tags">
+              <Icon type="md-thumbs-up" v-if="item.recommend.length !=0" style="margin-right:5px" />
               <Tag type="border" v-for="recom in item.recommend" :key="recom">{{recom}}</Tag>
             </div>
-            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </scroll>
 </template>
 
 <script>
 // 网络请求
-import {getRatings} from "../api/apis"
+import { getRatings } from "../api/apis";
 
 // 时间处理方法
-import {dateParse} from "../utils/methods.js" 
+import { dateParse } from "../utils/methods.js";
+
+// better-scroll组件
+import Scroll from '../components/Scroll'
+
+import {mapState} from 'vuex'
 
 export default {
-    created(){
-            this.getRatings()
-    },
-    data(){
-        return{
-            ratings:{},
-            dateParse
+  created() {
+    //初始化评论
+    this.initRatings();
+  },
+  data() {
+    return {
+      dateParse,
+      onlyShowText: false, // 是否只显示有文本的
+      selectType: 2 // 选择的评价类型: 0满意, 1不满意, 2全部
+    };
+  },
+  methods: {
+    initRatings() {
+      // 初始化评论
+      getRatings().then(res => {
+        if (res.status === 200) {
+          this.$store.commit("getRatings", res.data.data);
         }
+      });
     },
-    methods:{
-        getRatings(){
-            getRatings().then( res=>{
-                if(res.status===200){
-                    this.ratings=res.data.data
-                    console.log(this.ratings)
-                }
-            } )
-        },
- 
+    // 评论类型更改
+    RateTypeChange(type) {
+      this.selectType = type;
+    }
+  },
+
+  computed: {
+  ...mapState(['ratings','seller']),
+
+    // 过滤评价
+    rateType() {
+
+      return this.$store.state.ratings.filter(rate => (this.selectType===2 || rate.rateType === this.selectType) && (!this.onlyShowText || rate.text ))
     },
+
+    // 评价数量
+    rateNum(){
+      // 获取两种类的评论
+     let positive = 0,
+         negative=0
+      for(let item of this.$store.state.ratings.filter( item=>this.onlyShowText?item.text:item)){
+        item.rateType===0?positive++:negative++
+      }
+      return {positive,negative}
+
+    }
+
+  },
+  components:{
+    Scroll
+  }
+
 
 };
 </script>
 
 <style lang="less">
+.rating{
+  position:absolute;
+  top: 190px;
+  bottom: 60px;
+  width: 100%;
+}
+
 .rating-box {
   display: flex;
   height: 100px;
@@ -134,15 +184,14 @@ export default {
     }
   }
 
-  .rating-info {
+  .rating-info-box {
     display: flex;
-    flex-flow: column;
-    justify-content: space-around;
+    justify-content: center;
     align-items: center;
     flex: 6;
     font-size: 12px;
 
-    div {
+    .rating-info {
       span {
         margin-right: 5px;
       }
@@ -151,6 +200,9 @@ export default {
       div {
         margin: 0;
         font-size: 16px;
+        .ivu-rate-text {
+          font-size: 14px;
+        }
       }
     }
   }
@@ -167,12 +219,18 @@ export default {
       padding-bottom: 20px;
       margin-bottom: 20px;
       border-bottom: 1px solid #e8e8e8;
+      
+      .btnActive{
+        opacity:0.5;
+        border: 1px solid skyblue;
+      }  
 
       div {
         display: inline-block;
         padding: 5px 8px;
         border-radius: 2px;
         margin-right: 10px;
+        border:1px solid transparent;
 
         span {
           margin-left: 2px;

@@ -1,7 +1,6 @@
 <template>
   <div class="business">
     <div class="mask" :style="{backgroundImage:`url(${seller.avatar})`}"></div>
-
     <div class="info">
       <!-- 商家头像 -->
       <div class="avatar">
@@ -33,6 +32,8 @@
 </template>
 
 <script>
+
+
 export default {
   data() {
     return {};
@@ -41,7 +42,7 @@ export default {
     seller: {
       type: Object
     }
-  }
+  },
 };
 </script>
 
@@ -51,6 +52,7 @@ export default {
 
 .business {
   position: relative;
+  z-index:9;
   height: 150px;
   color: @color;
   overflow: hidden;

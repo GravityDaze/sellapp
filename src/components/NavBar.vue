@@ -27,14 +27,23 @@ export default {
 
 <style lang="less">
 .nav-bar {
+  position:relative;
+  z-index:8;
+  background:#fff;
   display: flex;
   justify-content: space-around;
   align-items: center;
   height: 40px;
   box-shadow: 0 0 5px #ddd;
+  
+  a{
+    color:#000;
+    padding:10px;
+  }
 
   .router-link-active {
-    color: red;
+    border-bottom:2px solid #00a1dc;
+    color:#00a1dc;
   }
 }
 </style>

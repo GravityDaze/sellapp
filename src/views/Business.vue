@@ -1,13 +1,13 @@
 <template>
-  <div class="business-page">
+  <scroll class="business-page">
     <div class="business-box">
       <div class="top-bar">
         <!-- 店铺资料 -->
         <div class="business-report">
-          <h3>粥品香坊(大运村)</h3>
-          <Rate disabled />
-          <span style="margin-right:8px;">(661)</span>
-          <span>月售690单</span>
+          <h3>{{seller.name}}</h3>
+          <Rate disabled allow-half v-model="seller.score" />
+          <span style="margin:0 8px;">({{seller.ratingCount}})</span>
+          <span>月售{{seller.sellCount}}单</span>
         </div>
         <!-- 收藏 -->
         <div class="collect">
@@ -20,21 +20,21 @@
         <div>
           <span>起送价</span>
           <h4>
-            20
+            {{seller.minPrice}}
             <span>元</span>
           </h4>
         </div>
         <div>
           <span>商家配送</span>
           <h4>
-            20
+            {{seller.deliveryPrice}}
             <span>元</span>
           </h4>
         </div>
         <div>
           <span>平均配送时间</span>
           <h4>
-            20
+            {{seller.deliveryTime}}
             <span>分钟</span>
           </h4>
         </div>
@@ -44,31 +44,10 @@
     <!-- 公告 -->
     <dl class="bulletin-box">
       <dt>公告与活动</dt>
-      <dd class="bulletin">
-        届かない梦がある事
-        【及遥不可及的梦想】
-        それ自体が梦になり希望になり
-        【其本身就是一种梦想化作了希望】
-        人生きていけるんだろ
-        【人才能活下去吧】
-        扉はある そこで待っている
-        【虽有一扇门 在那里等待着】
-      </dd>
-      <dd>
+      <dd class="bulletin">{{seller.bulletin}}</dd>
+      <dd v-for="(item,index) in seller.supports" :key="index">
         <img src="../assets/imgs/decrease_3@2x.png" alt />
-        在线支付捡钱
-      </dd>
-      <dd>
-        <img src="../assets/imgs/decrease_3@2x.png" alt />
-        在线支付捡钱
-      </dd>
-      <dd>
-        <img src="../assets/imgs/decrease_3@2x.png" alt />
-        在线支付捡钱
-      </dd>
-      <dd>
-        <img src="../assets/imgs/decrease_3@2x.png" alt />
-        在线支付捡钱
+        {{item.description}}
       </dd>
     </dl>
 
@@ -76,42 +55,42 @@
     <dl class="live-action">
       <dt>商家实景</dt>
       <dd>
-        <img src="../assets/imgs/landscape.jpg" alt />
-        <img src="../assets/imgs/landscape.jpg" alt />
-        <img src="../assets/imgs/landscape.jpg" alt />
+          <img v-for="pics in seller.pics" :src="pics" :key="pics"/>  
       </dd>
     </dl>
 
     <!-- 商家信息 -->
     <dl class="business-info">
       <dt>商家信息</dt>
-      <dd>该商家只吃发票</dd>
-      <dd>该商家只吃发票</dd>
-      <dd>该商家只吃发票</dd>
-      <dd>该商家只吃发票</dd>
-      <dd>该商家只吃发票</dd>
-      <dd>该商家只吃发票</dd>
-      <dd>该商家只吃发票</dd>
+      <dd v-for="(item,index) in seller.infos" :key="index">{{item}}</dd>
     </dl>
-
-    <br />
-    <br />
-    <br />
-    <br />
-    <br />
-    <br />
-    <br />
-    <br />
-    <br />
-  </div>
+  </scroll>
 </template>
 
 <script>
-export default {};
+import Scroll from '../components/Scroll'
+export default {
+
+
+  computed:{
+    seller(){
+        return this.$store.state.seller
+      }
+  },
+  components:{
+    Scroll
+  }
+
+};
 </script>
 
 <style lang="less">
 .business-page {
+  position: absolute;
+  top: 190px;
+  bottom: 60px;
+  width: 100%;
+
   .business-box {
     padding: 20px;
     border-bottom: 1px solid #e8e8e8;
@@ -196,7 +175,7 @@ export default {};
 
     dd {
       display: flex;
-      overflow: hidden;
+      overflow: scroll;
       img {
         width: 140px;
         height: 100px;

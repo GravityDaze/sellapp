@@ -1,8 +1,8 @@
 <template>
   <div class="goods">
     <!-- 左烂 -->
-    <div class="categroy" ref="categroy">
-      <ul class="content">
+    <!-- <div > -->
+      <scroll class="categroy" ref="categroy">
         <ul class="cate-list">
           <li
             v-for="(catalog,i) in goods"
@@ -20,15 +20,15 @@
             </div>
           </li>
         </ul>
-      </ul>
-    </div>
+      </scroll>
+    <!-- </div> -->
 
     <!-- 右栏 -->
-    <div class="right-content" ref="rightContent">
-      <ul class="content">
-        <div class="goods-list" v-for="(catalog,supIndex) in goods" :key="supIndex" :id="supIndex">
+     
+      <scroll class="right-content" ref="rightContent" :option='option'>
+        <div class="goods-list" v-for="(catalog,i) in goods" :key="i" :id="i">
           <div class="goods-categroy">{{catalog.name}}</div>
-          <div class="goods-item" v-for="(item,subIndex) in catalog.foods" :key="item.name">
+          <div class="goods-item" v-for="item in catalog.foods" :key="item.name">
             <!-- 商品图片 -->
             <div class="goods-img">
               <img :src="item.image" alt />
@@ -46,108 +46,137 @@
             </div>
             <!-- 按钮 -->
             <div class="num-selector">
+             <transition name="slide">
               <div
                 class="sub"
-                @click="add(supIndex,subIndex,-1)"
-                v-show="goods[supIndex].foods[subIndex].num!==0"
+                @click="add(item,-1)"
+                v-show="item.num &gt;0"
               >-</div>
-              <div class="count" v-show="goods[supIndex].foods[subIndex].num!==0">{{item.num}}</div>
-              <div class="add" @click="add(supIndex,subIndex,1)">+</div>
+               </transition>
+              <div class="count" v-show="item.num &gt; 0">{{item.num}}</div>
+              <div class="add" @click="add(item,1)">+</div>
+             
             </div>
           </div>
         </div>
-      </ul>
-    </div>
+      </scroll>
+      
   </div>
 </template>
 
 <script>
+// 网络请求
 import { getGoods } from "../api/apis";
-
-// 引入插件
-import BScroll from "better-scroll";
+// 引入better-scroll组件
+import Scroll from "../components/Scroll";
 
 export default {
+  name:'Goods',
   created() {
-    this.getGoods();
+    // 获取商品数据
+    this.initGoods();
   },
 
   mounted() {
-    //  初始化数据
-    this.left = new BScroll(this.$refs.categroy, {
-      click: true
-    });
-
-    this.right = new BScroll(this.$refs.rightContent, {
-      click: true,
-      probeType: 3
-    });
-
     // 监听右栏滚动
-    this.right.on("scroll", pos => {
-      this.scrollY = Math.abs(pos.y);
-      for (let i = 0; i < this.heights.length; i++) {
-        if (this.scrollY > this.heights[i]-50) {
-          this.curSelect = i;
-        }
-      }
-    });
+    this.rightScroll();
   },
 
   watch: {
-
-    // 监听goods的变化
-    goods() {
-      // 获取每一个li的高度
-      this.$nextTick(() => {
-        const list = document.querySelectorAll(".goods-list");
-        let curHeight = 0;
-        for (let i = 0; i < list.length; i++) {
-          curHeight += list[i].clientHeight;
-          this.heights.push(curHeight);
-        }
-      });
-    },
-
-    curSelect(val){
-        console.log(val)
-        this.left.scrollToElement(document.querySelectorAll('.cate-list li')[val],0)
-
+    // 监听左侧索引的变化实时改变位置
+    curSelect(val) {
+      this.$refs.categroy.scrollToElement(
+        document.querySelectorAll(".cate-list li")[val],
+        300
+      );
     }
   },
 
   data() {
     return {
-      goods: {},
       curSelect: 0,
-      scrollY: 0,
-      heights: [0],
+      // 右侧BS配置项
+      option:{
+        click:true,
+        probeType: 3
+      },
     };
   },
 
+  computed: {
+    // 获取li当前高度
+    listHeight() {
+      const list = document.querySelectorAll(".goods-list");
+      let heights = [0];
+      let curHeight = 0;
+      for (let i = 0; i < list.length; i++) {
+        curHeight += list[i].scrollHeight;
+        heights.push(curHeight);
+      }
+      return heights;
+    },
+
+    // 获取vuex中的商品数据
+    goods(){
+      return this.$store.state.goods
+    }
+
+  },
   methods: {
-    getGoods() {
+    // 获取商品列表数据
+    initGoods() {
       getGoods().then(res => {
         if (res.status === 200) {
-          this.goods = res.data.data;
+          this.$store.commit("getGoods",res.data.data)
         }
       });
     },
-    // 增加减少数量
-    add(supIndex, subIndex, num) {
-      this.goods[supIndex].foods[subIndex].num += num;
+
+    // 数量选择
+    add(item,num) {
+      this.$store.commit('updatedNum',{item,num})
     },
 
-    // 滚动
+    // 左栏点击事件
     categoryClick(i) {
       this.curSelect = i;
-      this.right.scrollToElement(document.getElementById(i), 0);
+      this.$refs.rightContent.scrollToElement(document.getElementById(i), 300);
+    },
+
+    // 右栏滚动
+    rightScroll() {
+
+      this.$refs.rightContent.on("scroll", pos => {
+        const scrollY = Math.abs(pos.y);
+        for (let i = 0; i < this.listHeight.length; i++) {
+          if (scrollY >= this.listHeight[i] && scrollY<this.listHeight[i+1]) {
+            this.curSelect = i;
+            return
+          }
+        }
+      });
     }
+  },
+
+  components:{
+    Scroll
   }
 };
 </script>
 
 <style lang="less">
+// 数量选择器动画
+.slide-enter-active,.slide-leave-active {
+  transition: all .3s ease;
+}
+
+.slide-enter, .slide-leave-to
+{
+  transform: translateX(10px);
+  opacity: 0;
+}
+
+
 .goods {
   display: flex;
   position: absolute;
@@ -160,7 +189,7 @@ export default {
     background: #f3f6f6;
     width: 80px;
     line-height: 1;
-    overflow: scroll;
+    overflow: hidden;
 
     .cate-list {
       li {
@@ -184,8 +213,8 @@ export default {
       // 选中效果
       .selected {
         background: #fff;
-        margin-top: -2px;
-        height: 62px;
+        margin-top: -1px;
+        height: 60px;
         .text {
           border: 0;
         }
@@ -194,7 +223,7 @@ export default {
   }
 
   .right-content {
-    overflow: scroll;
+    overflow: hidden;
     flex: 1;
 
     // 商品类
@@ -267,7 +296,6 @@ export default {
         bottom: 15px;
         display: flex;
         height: 24px;
-        // justify-content: space-between;
 
         .add {
           .num-selector();
